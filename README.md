@@ -2,7 +2,7 @@ A few additional unique code samples:
 
 *PS5: ps5-zachcerickson/src/minPQ.java and linkedminPQ.java*
 
-Just some simple priority queue code leading into ps6.
+Just some simple priority queue code from a Computer Science II java course.
 
 *PS6: ps6-zachcerickson/src/bin/typechecker.ml*
 
