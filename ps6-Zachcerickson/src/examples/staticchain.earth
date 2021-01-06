@@ -1,0 +1,8 @@
+let f(a : int) : int =
+  let g(b : int) : int =
+    let h(c : int) : int =
+      if (c = 0) then (343 + a + b + c) else h(c - 1)
+    in
+    if (b = 0) then h(1) else g(b - 1)
+  in
+  if (a = 0) then g(2) else f(a - 1)

@@ -1,0 +1,5 @@
+let gcd(m : int, n : int) : int =
+  if n = 0 then
+    m
+  else
+    gcd(n, m % n)

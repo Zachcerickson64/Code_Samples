@@ -1,0 +1,36 @@
+let abs(r : real) : real = (if r <. 0.0 then ((0.0 -. 1.0) *. r) else r)
+
+let isFactor(m : int, n : int) : bool = (n % m = 0)
+
+let sqrt(r : real) : real =
+  let error : real = 0.0001 in
+  let loop(lo : real, hi : real, n : int) : real =
+    let guess : real = (lo +. hi) /. 2.0
+    in
+    if n = 0 then
+      0.0
+    else
+      let gs : real = guess *. guess
+      in
+      if abs(r -. gs) <. error then
+        guess
+      else
+        if (gs >. r) then
+          loop(lo, guess, n - 1)
+        else
+          loop(guess, hi, n - 1)
+  in
+  loop(0.0, r, 40)
+
+let isPrime(n : int) : bool =
+  let top : int = r2i(sqrt(i2r(n))) in
+  let loop(i : int) : bool =
+    if i > top then
+      true
+    else
+      if isFactor(i, n) then
+        false
+      else
+        loop(i + 1)
+  in
+  loop(2)

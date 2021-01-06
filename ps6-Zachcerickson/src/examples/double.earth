@@ -1,0 +1,4 @@
+let double(n : int + real) : int + real =
+  case n of
+    inl(x : int) => inl(x * 2, real)
+  | inr(x : real) => inr(x *. 2.0, int)
