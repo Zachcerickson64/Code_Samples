@@ -1,0 +1,177 @@
+drop table rental;
+drop table inventory;
+drop table location;
+drop table customer;
+drop sequence rental_seq;
+
+
+create table customer
+(id   number(4) primary key,
+name  varchar2(15) not null );
+
+
+create table location
+(id   number(1) primary key,
+name varchar2(15) not null);
+
+
+create table inventory
+(id  number(4) primary key,
+type  varchar2(3) not null,
+location   number(1) references location(id) );
+
+
+create table rental
+(id  number(10) primary key,
+cust_id number(8) references customer(id),
+start_time  date not null,
+end_time date,
+reason  varchar2(25) not null,
+bike_id number(4) references inventory(id),
+start_loc number(1) references location(id),
+stop_loc number(1) references location(id) );
+
+
+create sequence rental_seq increment by 1 start with 1000000000;
+
+
+insert into customer values (1111, 'Zach');
+insert into customer values (2222, 'Dan');
+insert into customer values (3333, 'Mark');
+insert into customer values (1010, 'Evi');
+
+insert into location values (1, 'Outside');
+insert into location values (2, 'Inside');
+insert into location values (3, 'Outer Space');
+insert into location values (0, 'Dummy');
+
+insert into inventory values (1111, 'BMX', 2);
+insert into inventory values (2222, 'RBK', null);
+insert into inventory values (3333, 'HOG', 3);
+insert into inventory values (0000, 'DUM',0);
+insert into inventory values (1010, 'EVI', 1);
+insert into inventory values (9999, 'BIK', 3);
+
+insert into rental values (1000000000, 1111, sysdate - 8, sysdate - 2, 'I wanted to', 1111, 1, 2);
+insert into rental values (2000000000, 2222, sysdate - 4, sysdate - 3, 'I really wanted to', 2222, 2, 3);
+insert into rental values (3000000000, 2222, sysdate - 2, null, 'I think I wanted to', 2222, 2, null);
+insert into rental values (3000000001, 1010, sysdate-3, sysdate-2, 'whatever', 0000, 0, 0);
+
+
+grant select on customer to  public;
+grant select on location to  public;
+grant select on inventory to  public;
+grant select on rental to  public;
+
+
+
+create or replace procedure new_rental  
+(arg_cust_id in number, arg_bike in number, arg_start_location in number, arg_reason in varchar)  
+is 
+--ws_cust_name varchar;
+ws_cust_id number;  
+ws_bike number;  
+ws_start_location number;  
+ws_stop_location number;  
+  
+  
+no_bike exception;  
+bad_customer exception;  
+bad_bike exception;  
+ 
+  
+begin  
+
+--insert into ws_cust_id cust_id.nextval
+  
+--test customer 
+select max(id) into ws_cust_id from customer 
+where id=arg_cust_id
+and (
+((select max(r.cust_id) from rental r where r.cust_id=arg_cust_id and r.end_time is not null) is not null)
+); 
+ 
+if ws_cust_id is null 
+    then raise bad_customer; 
+end if; 
+
+  
+--test start location  
+select max(id) into ws_start_location from location  
+where (select count(*) from inventory i where i.location = arg_start_location)>0; 
+  
+if ws_start_location = 0  
+    then raise no_bike;  
+end if;  
+      
+--test bike 
+
+-- we are checking if start time is null but with dummy its never null
+select max(id) into ws_bike from inventory
+where (id = arg_bike) and (
+((select start_time from rental where bike_id=arg_bike)is null)  OR ( ((select max(r.id) from rental r where (r.bike_id=arg_bike and r.end_time is not null)) is not null) and ( (sysdate - (select e.end_time from rental e where ( (select max(n.id) from rental n where n.id=arg_bike) = e.id ) ) ) > (3/(24*60))  )
+));
+ 
+  
+if ws_bike is null  
+    then raise bad_bike;  
+end if;  
+                 
+      
+insert into rental values(rental_seq.nextval , arg_cust_id, sysdate, null, arg_reason, arg_bike, arg_start_location, null);  
+                             
+                             
+EXCEPTION 
+when bad_customer then  
+    raise_application_error(-20000, 'Customer not found'); 
+when no_bike then  
+    raise_application_error (-20001, 'Location does not have a bike');  
+when bad_bike then  
+    raise_application_error (-20002, 'Bike not found or bike already rented');  
+ 
+  
+end;  
+
+
+create or replace procedure return_rental 
+(arg_end_location in number, arg_customer in number) 
+
+is
+ws_rental_id number; 
+ws_bike number;
+ 
+ begin
+ 
+select id into ws_rental_id from rental 
+where (cust_id = arg_customer and end_time is null); 
+ 
+select bike_id into ws_bike from rental 
+where id=ws_rental_id and end_time is null; 
+ 
+
+ 
+update rental 
+set end_time = sysdate
+    where id = ws_rental_id; 
+ 
+update rental 
+ set stop_loc = arg_end_location  
+    where id = ws_rental_id; 
+     
+
+update inventory set location = arg_end_location 
+    where id = ws_bike; 
+ 
+     
+end;
+
+#OWNER#.NEW_RENTAL(
+ARG_CUST_ID => :P3_G_CUSTOMER,
+ARG_BIKE => :P3_G_BIKE,
+ARG_START_LOCATION => :P3_G_START_LOCATION,
+ARG_REASON => :P3_G_REASON);
+
+
+#OWNER#.NEW_CUSTOMER_RENTAL(
+ARG_NAME => :P2_C_NAME,
+ARG_ID => :P2_C_ID);
